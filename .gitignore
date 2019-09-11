@@ -4,5 +4,10 @@
 turing-api/
 turing-shop/
 /tmp-docker-vol/
+proxy/*
+!proxy/traefik.toml
+!proxy/traefik-back.toml
+!proxy/nginx.conf
+!proxy/acme.json
 
 .DS_Store
