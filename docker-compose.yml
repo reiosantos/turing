@@ -1,0 +1,107 @@
+version: "3"
+
+services:
+    proxy:
+        image: traefik   # the official Traefik docker image
+        container_name: traefik
+        restart: on-failure
+        command: --api --docker # enables the web UI and tells Traefik to listen to docker
+        ports:
+            - 80:80     # the HTTP port
+            - 443:443   # https Port
+            - 8081:8081 # the Web UI (enabled by --api)
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./proxy/traefik.toml:/etc/traefik/traefik.toml
+            - ./proxy/acme.json:/acme.json
+
+    turing-api:
+        build: turing-api/
+        image: turing-api
+        container_name: turing-api
+        volumes:
+            - ./turing-api:/usr/src/app/
+        environment:
+            - NPM_CONFIG_LOGLEVEL=warn
+            - NODE_ENV=development
+            - DEBUG=true
+            - DATABASE_URL=mysql://turing:turing@db:3306/turing
+            - TEST_DATABASE_URL=mysql://turing:turing@db-test:3306/turing_test
+            - EMAIL_HOST_USER=yosam.db@gmail.com
+            - EMAIL_HOST_PASSWORD=ronald@507
+        links:
+            - proxy:local.turing.com
+            - db
+            - db-test
+        labels:
+            - traefik.enable=true
+            - traefik.port=3000
+            - traefik.api.backend=turing-api
+            - traefik.api.frontend.passHostHeader=true
+            - traefik.api.frontend.rule=Host:local.turing.com;PathPrefixStrip:/api
+        depends_on:
+            - db
+        command: bash -c "npm install && bash ./docker/run.sh"
+
+    turing-shop:
+        build: turing-shop/
+        image: turing-shop
+        container_name: turing-shop
+        volumes:
+            - ./turing-shop:/usr/src/app/
+        links:
+            - proxy:local.turing.com
+            - turing-api
+        labels:
+            - traefik.enable=true
+            - traefik.port=4200
+            - traefik.frontend.passHostHeader=true
+            - traefik.app.backend=turing-shop
+            - traefik.app.frontend.rule=Host:local.turing.com;PathPrefix:/dashboard
+            - traefik.dashboard.backend=turing-shop
+            - traefik.dashboard.frontend.rule=Host:local.turing.com;Path:/
+            - traefik.dashboard.frontend.redirect.regex=^http://local.turing.com/(.*)
+            - traefik.dashboard.frontend.redirect.replacement=http://local.turing.com/dashboard/$$1
+        depends_on:
+            - db
+        command: bash -c "npm install && bash ./docker/run.sh"
+
+    db:
+        image: mysql:5.7
+        container_name: db
+        command: ["--general_log=1", "--log_output=TABLE", "--explicit_defaults_for_timestamp=1"]
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_PASSWORD=turing
+            - MYSQL_DATABASE=turing
+            - MYSQL_USER=turing
+        ports:
+            - 3306:3306
+        restart: always
+        volumes:
+            - ./tmp-docker-vol/mysql:/var/lib/mysql
+        healthcheck:
+            test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-proot"]
+            interval: 30s
+            timeout: 30s
+            retries: 10
+
+    db-test:
+        image: mysql:5.7
+        container_name: db-test
+        command: ["--general_log=1", "--log_output=TABLE", "--explicit_defaults_for_timestamp=1"]
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_PASSWORD=turing
+            - MYSQL_DATABASE=turing
+            - MYSQL_USER=turing
+        ports:
+            - 3307:3306
+        restart: always
+        volumes:
+            - ./tmp-docker-vol/mysql:/var/lib/mysql
+        healthcheck:
+            test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-proot"]
+            interval: 30s
+            timeout: 30s
+            retries: 10

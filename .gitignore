@@ -1,0 +1,7 @@
+.idea
+.vscode
+
+turing-api/
+turing-shop/
+
+.DS_Store
