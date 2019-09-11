@@ -20,14 +20,6 @@ domain = "turing.com"
 watch = true
 exposedByDefault = false
 
-[acme]
-email = "me@turing.com"
-storage = "/acme.json"
-entryPoint = "https"
-onHostRule = true
-    [acme.httpChallenge]
-    entryPoint = "http"
-
 [api]
   # Name of the related entry point
   #

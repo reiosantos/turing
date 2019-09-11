@@ -3,5 +3,6 @@
 
 turing-api/
 turing-shop/
+/tmp-docker-vol/
 
 .DS_Store

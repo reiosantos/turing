@@ -13,7 +13,6 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - ./proxy/traefik.toml:/etc/traefik/traefik.toml
-            - ./proxy/acme.json:/acme.json
 
     turing-api:
         build: turing-api/
@@ -24,6 +23,7 @@ services:
         environment:
             - NPM_CONFIG_LOGLEVEL=warn
             - NODE_ENV=development
+            - ENV=local
             - DEBUG=true
             - DATABASE_URL=mysql://turing:turing@db:3306/turing
             - TEST_DATABASE_URL=mysql://turing:turing@db-test:3306/turing_test
@@ -52,6 +52,8 @@ services:
         links:
             - proxy:local.turing.com
             - turing-api
+        environment:
+            - ENV=local
         labels:
             - traefik.enable=true
             - traefik.port=4200
@@ -98,8 +100,6 @@ services:
         ports:
             - 3307:3306
         restart: always
-        volumes:
-            - ./tmp-docker-vol/mysql:/var/lib/mysql
         healthcheck:
             test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-proot"]
             interval: 30s
