@@ -27,9 +27,10 @@ services:
             - STRIPE_PUBLISHABLE_KEY=somekey
             - STRIPE_SECRET_KEY=sk_test_lomdOfxbm7QDgZWvR82UhV6D
             - SENDGRID_API_KEY=somekey
+            - MAILGUN_DOMAIN=sandbox1b9f9710d96b4010970c32a355ffb351.mailgun.org
+            - MAILGUN_API_KEY=be7c599581236e19cc3772178e46b376-c27bf672-131b2695
             - JWT_KEY=23456780poiuytrewq
         links:
-            - db-test
             - proxy:local.turing.com
         labels:
             - traefik.enable=true
@@ -37,8 +38,6 @@ services:
             - traefik.api.backend=turing-api
             - traefik.api.frontend.passHostHeader=true
             - traefik.api.frontend.rule=Host:local.turing.com;PathPrefix:/api
-        depends_on:
-            - db-test
         command: bash -c "npm install && bash ./turing-entrypoint.sh"
 
     turing-shop:
@@ -49,6 +48,7 @@ services:
             - ./turing-shop:/usr/src/app/
         links:
             - turing-api
+            - proxy:local.turing.com
         environment:
             - ENV=local
         labels:
@@ -62,21 +62,3 @@ services:
             - traefik.dashboard.frontend.redirect.regex=^http://local.turing.com/(.*)
             - traefik.dashboard.frontend.redirect.replacement=http://local.turing.com/dashboard/$$1
         command: bash -c "npm install && bash ./docker/run.sh"
-
-    db-test:
-        image: mysql:5.7
-        container_name: db-test
-        command: ["--general_log=1", "--log_output=TABLE", "--explicit_defaults_for_timestamp=1"]
-        environment:
-            - MYSQL_ROOT_PASSWORD=root
-            - MYSQL_PASSWORD=turing
-            - MYSQL_DATABASE=turing_test
-            - MYSQL_USER=turing
-        ports:
-            - 3306:3306
-        restart: always
-        healthcheck:
-            test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-proot"]
-            interval: 30s
-            timeout: 30s
-            retries: 10
